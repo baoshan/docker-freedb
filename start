@@ -1,0 +1,2 @@
+#!/bin/sh
+uwsgi --http-socket :8080 --master --http-socket-modifier1 9 /usr/local/cddbd/cddbd.ini > /dev/null 2>&1
