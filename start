@@ -1,2 +1,2 @@
 #!/bin/sh
-exec uwsgi --die-on-term --http-socket :8080 --master --http-socket-modifier1 9 /usr/local/cddbd/cddbd.ini > /dev/null 2>&1
+exec uwsgi /usr/local/cddbd/cddbd.ini > /dev/null 2>&1
