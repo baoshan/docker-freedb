@@ -1,0 +1,150 @@
+#!/usr/bin/perl
+
+# freedb.org submit.cgi
+# a free approach to the CDDB.com http-submit via submit.cgi
+#
+# This is free software under the terms of the GNU General Public License
+# as published by the Free Software Foundation; either version 2 of the 
+# License, or (at your option) any later version.
+#
+# The submit.cgi cgi is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU General Public License for more details.
+#
+# You should have received a copy of the GNU General Public License
+# along with this program; if not, write to the Free Software
+# Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+
+# $Id: submit.cgi.template,v 1.1.2.1 2006/06/30 22:24:26 joerg78 Exp $
+
+# Specify where sendmail is located. This might need to be adjusted,
+# e.g. some systems (like Solaris) have sendmail at /usr/lib/sendmail
+
+$sendmailcmd = '/usr/sbin/sendmail';
+
+use CGI;
+use MIME::QuotedPrint;
+
+$q = new CGI("");
+
+# set valid freedb categories
+
+@validcategories = ("blues","classical","country",
+					"data","folk","jazz","misc",
+					"newage","reggae","rock","soundtrack");
+					
+# specify submit-addresses for real submit and test submit
+# This may only be edited, if you're using the script on a
+# local server and want to submit to your own server. It may
+# not be edited, if you're running an official freedb mirror!
+
+$submit = 'freedb-submit@freedb.org';
+$testsubmit = 'test-submit@freedb.org';
+
+undef $failurereason;
+
+# get info from headers
+
+$category 		= lc($ENV{'HTTP_CATEGORY'});
+$discid 		= lc($ENV{'HTTP_DISCID'});
+$useremail 		=    $ENV{'HTTP_USER_EMAIL'};
+$submitmode 	= lc($ENV{'HTTP_SUBMIT_MODE'});
+$note			=    $ENV{'HTTP_X_CDDBD_NOTE'};
+$charset		=    lc($ENV{'HTTP_CHARSET'});
+
+# check if freedb category is valid
+
+foreach $validcategory (@validcategories) {
+	if ($category eq $validcategory) {
+		undef $failurereason;
+		last;
+	}
+	$failurereason = "freedb category";
+}
+
+# simple check if disc ID seems to be valid
+
+if (length($discid) != 8) {
+	$failurereason = "disc ID";
+}
+if ($discid =~ /[^0-9a-f]/) {
+	$failurereason = "disc ID";
+}
+
+# check if e-mail-address seems to be valid
+
+if ($useremail !~ /^[\w\-\.]{1,}\@([\w\-]{2,}\.)*[\w\-]{2,}\.[\w]{2,4}$/) {
+	$failurereason = "email address";
+}
+
+# convert charset to lower case and check if it is valid
+
+$charset =~ tr/A-Z/a-z/;
+if ($charset eq "") {
+	$charset = "iso-8859-1";
+}
+elsif ($charset !~ /^(us-ascii|iso-8859-1|utf-8)$/) {
+	$failurereason = "charset";
+}
+
+if (($category eq "") or ($discid eq "") or ($useremail eq "")){
+	$failurereason = "500";
+}
+
+
+# if a failure occurred, return the appropriate errorcode
+
+if ($failurereason ne undef) {
+	print $q->header(-status=>"200 OK");
+	if ($failurereason eq "500") {
+		print "500 Missing required header information.\n";
+	} else {
+		print "501 Invalid header information [$failurereason].\n";
+	}
+
+# generate submit-mail
+
+} else {
+
+# set sendto-address by evaluating the submit-mode header, default to "test"
+
+	if ($submitmode eq "submit") {
+		$sendto = $submit;
+	} else {
+		$sendto = $testsubmit;
+	}
+
+	open(MAIL,"|$sendmailcmd -t -oi") or $failurereason = "open";
+
+	if ($failurereason eq undef) {
+
+		# generate mailheader
+		print MAIL "From: $useremail\n";
+		print MAIL "To: $sendto\n";
+		print MAIL "Subject: cddb $category $discid\n";
+		print MAIL "MIME-Version: 1.0\n";
+		print MAIL "Content-Type: text/plain; charset=$charset\n";
+		print MAIL "Content-Transfer-Encoding: quoted-printable\n";
+		if ($note ne "") { print MAIL "X-Cddbd-Note: $note\n\n"; }
+	
+		# generate mail body
+
+		while ($qs=<STDIN>){
+			$qs =~ s/\r//g;
+			$qs =~ s/\n//g;
+			$qs = encode_qp($qs);
+			if ($qs ne "") { print MAIL "$qs\n"; }
+		}
+		close (MAIL) or $failurereason = "close";
+	}
+
+	# report success or failure of submit
+	if ($failurereason ne undef) {
+		print $q->header(-status=>"200 OK");
+		print "500 Internal Server Error: Failed to $failurereason pipe to sendmail.\n";
+	} else {
+		print $q->header(-status=>"200 OK");
+		print "200 OK, submission has been sent.\n";
+	}
+}

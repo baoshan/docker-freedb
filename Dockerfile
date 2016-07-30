@@ -4,17 +4,20 @@ MAINTAINER baoshan
 # build environment settings
 ENV instsubmitcgi="false"
 
+COPY cddbd-1.5.2 /usr/local/cddbd/cddbd-1.5.2
+
 # install uwsgi
 RUN	apt-get update -q && \
 	apt-get install -y \
-		curl \
+		# nodejs \
+		# curl \
 		python-pip \
 		uwsgi && \
 
 # install cddbd
 	mkdir -p /usr/local/cddbd/cgi && cd /usr/local/cddbd && \
-	curl -O http://ftp.freedb.org/pub/freedb/cddbd-1.5.2.tar.gz && \
-	tar -xzvf cddbd-1.5.2.tar.gz && rm cddbd-1.5.2.tar.gz && \
+	# curl -O http://ftp.freedb.org/pub/freedb/cddbd-1.5.2.tar.gz && \
+	# tar -xzvf cddbd-1.5.2.tar.gz && rm cddbd-1.5.2.tar.gz && \
 	cd cddbd-1.5.2 && \
 	echo | ./config.sh && \
 	make && \

@@ -1,0 +1,423 @@
+#
+#   @(#)$Id: access.hdr,v 1.9.2.1 2006/04/17 13:30:30 joerg78 Exp $
+#
+#   cddbd - CD Database Protocol Server
+#
+#   Copyright (C) 1996  Steve Scherf (steve@moonsoft.com)
+#   Portions Copyright (C) 2001-2003  by various authors
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 675 Mass Ave, Cambridge, MA 02139, USA.
+#
+#
+#  CDDBD access file
+#
+#  All parameters should each appear on a separate line. Numerical options
+#  should be a positive decimal value. Pathname arguments should always specify
+#  absolute paths.
+#
+#
+#  motdfile:
+#       Absolute pathname to a file containing the "message of the day".
+#       This should probably reside in the same directory as the access file,
+#       but doesn't necessarily have to. The contents of this file will
+#       be displayed to the client when the "motd" server command is executed.
+#
+#  sitefile:
+#       Absolute pathname to a file containing information on remote sites.
+#       This information is used when transmitting database entries,
+#       and as data for the "sites" command.
+#
+#  altaccess:
+#	Absolute pathname to an alternative access file. Entries in the 
+#	alternative access file are read after the access file is read
+#	so it is possible to override settings in the access file.
+#	The alternative access file is used to allow remote administration.
+#
+#  workdir:
+#       Absolute pathname to the root server directory. This path is
+#       where all the server files and directories reside.
+#
+#  cddbdir:
+#       Absolute pathname to the directory where the CD database is located.
+#       This is the only required field in the access file.
+#
+#  postdir:
+#       Absolute pathname to the directory for posting new entries.
+#       This should be the same as cddbdir if you are running a slave site.
+#       Since by enabling posting you are allowing others to write
+#       to your system, you might want to make this a directory somewhere
+#       in your spool directory hierarchy in order to avoid having a
+#       malicious user clog up your filesystem. Be sure to set up your
+#       posting permissions correctly in any case.
+#
+#  dupdir:
+#       Absolute pathname to the directory for putting duplicate entries.
+#       This directory is important if you are maintaining a master copy
+#       of the database. Files in the post directory that are duplicates
+#       of entries in the database will end up here when an update is run.
+#       Duplicates must be dealt with by hand; whether that means deletion
+#       or hand-inspection is up to the database administrator. If no
+#       path is specified, duplicates will be deleted automatically.
+#
+#  input_time:
+#       Input timeout value in seconds. User is disconnected if idle
+#       longer than the timeout. A zero value disables this feature.
+#
+#       Should be less than or equal to "connect_time".
+#
+#  access_time:
+#       Access timeout value in seconds. User is disconnected if
+#       a database access attempt is not performed within the allotted
+#       time. A zero value disables this feature.
+#
+#       This keeps users from connecting via telnet and staying connected
+#       without actually using the server.
+#
+#       Should be greater than or equal to "input_time" and less than or
+#       equal to "connect_time".
+#
+#  connect_time:
+#       Connect timeout value in seconds. User is disconnected after
+#       being connected for the allotted time. A zero value disables
+#       this feature.
+#
+#       This keeps the user from hogging the server for too long, regardless
+#       of how he uses it.
+#
+#       Should be greater than or equal to "access_time".
+#
+#  xmit_time:
+#       Input timeout value in seconds. Connections to remote sites
+#       are terminated if transmissions stall for longer than the
+#       timeout. A zero value disables this feature.
+#
+#  elapse_time:
+#       The time in milliseconds used when checking if too much time has
+#       been spent processing. If set to zero, there is no processing time
+#       limit.
+#
+#  delay_time:
+#       The time in milliseconds used when delaying if too much time has
+#       been spent processing. If set to zero, no delay will be performed.
+#
+#  email_time:
+#       The time in milliseconds to delay between each email when transmitting
+#       via smtp. When set to 0, it can literally flood the smtp host.
+#
+#  lock_time:
+#       The time in milliseconds to delay between lock acquisition retries.
+#
+#  lock_wait:
+#       The number of seconds to attempt to acquire a lock before giving up.
+#
+#  fuzzy_factor:
+#       The frame count factor used in comparing track offsets for
+#       fuzzy matching. This is the number of frames that any one track
+#       can be off by. Frames are 1/75 of a second.
+#
+#       This should probably be left alone. Tuning this upward makes for
+#       a more liberal matching algorithm that is prone to find incorrect
+#       matches, and tuning it downward makes for a stricter matching
+#       algorithm that is more likely to miss legitimate matches.
+#
+#  fuzzy_div:
+#       When divided into "fuzzy factor", this is the average number of
+#       frames track offsets can differ by for fuzzy matching.
+#
+#       This should probably be left alone. Tuning this downward makes for
+#       a more liberal matching algorithm that is prone to find incorrect
+#       matches, and tuning it upward makes for a stricter matching
+#       algorithm that is more likely to miss legitimate matches.
+#
+#  logging:
+#       Logging verbosity flags. If logfile is not specified, logging
+#       is always disabled, regardless of this setting. One or more of the
+#       following should be specified separated by white space:
+#
+#       none:	Logging disabled. This nullifies all other log flags.
+#       hello:	Logs "hello" data. Useful for keeping track of database "hits".
+#       access:	Logs database accesses.
+#       post:	Logs database postings.
+#       info:	Logs general info.
+#       input:	Logs all user input.
+#       errors:	Logs program errors.
+#       all:	Enables all logging flags.
+#
+#  dup_policy:
+#       The value of this variable dictates wheter duplicate entries are to
+#       be copied over existing database entries. This variable may be
+#       specified with one of the following options:
+#
+#       never:   Never copy over an existing database entry with a duplicate.
+#       compare: Compare duplicates with existing entries before copying over.
+#       always:  Always copy duplicate entries over existing entries.
+#
+#       Duplicates that are rejected for copying are put into "dupdir" if
+#       it exists, otherwise they are deleted. It is suggested that
+#       slave sites set this to "always" and master sites set this to
+#       "compare". If not specified, the default setting is "compare".
+#
+#  transmits:
+#       The value of this variable specifies how many sites can be
+#       transmitted to simultaneously. Since transmitting is inexpensive,
+#       it is safe to set this number high.
+#
+#  smtphost:
+#       The hostname of the system to contact when sending mail via SMTP.
+#       The most likely host is "localhost", but someone may want to
+#       set this to another address.
+#
+#  admin_email:
+#       The full email address of the daemon administrator. This is used
+#       as the return address when the server sends email.
+#
+#  bounce_email:
+#       The full email address to which copies of bounced email submissions
+#       should go (in addition to the original sender). This should
+#       generally be set to those who are interested in debugging problems
+#       with submissions from client applications. If this parameter is
+#       empty or missing, only the originator is mailed when a submission
+#       is rejected.
+#
+#  test_email:
+#       The full email address to which copies of test email submissions
+#       should go (in addition to the original sender). This should
+#       generally be set to those who are interested in debugging problems
+#       with test submissions from client applications. If this parameter is
+#       empty or missing, only the originator is mailed when a test submission
+#       is received. Responses to test submissions are sent regardless of
+#       whether the submission is accepted or rejected.
+#
+#  apphost:
+#	The hostname to be displayed in the banner message and in quit 
+#	messages. If no apphost is set, the real hostname will be used.
+#
+#  strip_ext:
+#       A boolean value which may be either ("1", "true", "yes") to indicate
+#       true or ("0", "false", "no") to indicate false. If true, extended
+#       track data is purged when checking the database and when entries
+#       are read by users.
+#
+#  log_hiwat:
+#       The maximum size in bytes the log file is allowed to be. If the log
+#       file should increase in size so that it exceeds the high water mark,
+#       it is truncated.
+#
+#  log_lowat:
+#       The size the log file is truncated to when it grows to log_hiwat
+#       bytes in size.
+#
+#  put_size:
+#       The max allowable amount of data transferable through a put.
+#
+#  post_lines:
+#       The max number of allowable lines a posted database entry
+#       may be. A line is currently limited to 256 bytes.
+#
+#  users:
+#       The max number of users that can access the database at once.
+#       If set to zero, no limit is placed on the number of
+#       simultaneous users. Accesses to the database tend to be
+#       very quick and efficient, so very little additional load is
+#       placed on even a slow system by the server. You might want to
+#       consider disabling this feature or setting it to a very high value,
+#       unless your system is an extremely busy one.
+#
+#  ck_berzerk:
+#       If set to yes, the server closes the connection in cddbp mode with
+#       an error message, if repeated identical cddb query or cddb read
+#       commands are detected. This is to try to stop berzerk clients. If set
+#       to no, no checking for berzerk clients is done.
+#
+#  file_charset:
+#       The charset used in files. The possible values are:
+#
+#       only_iso:
+#           All files are in ISO-8859-1.
+#       prefer_iso:
+#           Files may be in ISO-8859-1 or UTF-8. New files are created
+#           in ISO-8859-1 if the data can be represented in ISO-8859-1
+#           and the result is not confusible with UTF-8, and otherwise
+#           in UTF-8.
+#       prefer_utf:
+#           Files may be in ISO-8859-1 or UTF-8, but new files are
+#           always created in UTF-8.
+#       only_utf:
+#           All files are in UTF-8.
+#
+#       The default is "prefer_iso", which gives full Unicode support
+#       to clients while minimising the use of UTF-8 on disc.
+#
+#  utf_as_iso:
+#       What to do with client data that is presented as ISO-8859-1
+#       (because the protocol level is < 6 or the MIME charset
+#       indication says "iso-8859-1") but which looks like UTF-8.
+#       The possible values are:
+#
+#       accept:
+#           Accept the data as ISO-8859-1.
+#       reject:
+#           Refuse the data, giving an error.
+#       convert:
+#           If the data is valid as UTF-8, accept it as UTF-8.
+#           Otherwise refuse the data, giving an error.
+#
+#       The default is "reject", which protects the database from
+#       being corrupted by confused clients.
+#
+#  user:
+#       The user name of the user that owns the daemon files. This may
+#       also be a numeric user ID. If the word "default" is specified,
+#       the user name of the invoking user will be used.
+#
+#  group:
+#       The group name of the user that owns the daemon files. This may
+#       be the name of any group that the user belongs to. This may
+#       also be a numeric group ID. If the word "default" is specified,
+#       the group name of the invoking user will be used.
+#
+#  file_mode:
+#       The file permissions, in octal, that server files should be set to.
+#
+#  dir_mode:
+#       The file permissions, in octal, that server directories should be
+#       set to.
+#
+#  db_user:
+#       The user name of the user that owns the database files. This may
+#       also be a numeric user ID. If the word "default" is specified,
+#       the user name of the invoking user will be used.
+#
+#  db_group:
+#       The group name of the user that owns the database files. This may
+#       be the name of any group that the user belongs to. This may
+#       also be a numeric group ID. If the word "default" is specified,
+#       the group name of the invoking user will be used.
+#
+#  db_file_mode:
+#       The file permissions, in octal, that database files should be set to.
+#
+#  db_dir_mode:
+#       The file permissions, in octal, that database directories should be
+#       set to.
+#
+#  host_perms:
+#       Whether to allow/disallow connections, posting entries to "postdir"
+#       via "cddb write", whether to allow remotely initiated database
+#       updates via "update", whether to allow the user to get the log
+#       and other files, and whether to allow the user to update the motd and
+#       sites files. There may be multiple of these lines in the file
+#       in order to specify different permissions for various hosts.
+#
+#       The format is:
+#
+#       permissions: interface remote_host connect post update get put
+#
+#       The arguments are:
+#
+#       interface: Valid values are: c, h, e and s, which correspond to CDDBP,
+#           HTTP, email and submissions. You may put any or all of these
+#           values in a single argument, with no separating spaces. If a
+#           single '-' character appears before these values, then all
+#           interfaces not listed after the '-' are specified; a '-' by
+#           itself specifies all interfaces.
+#       remote_host: An Internet hostname, network name, domain name,
+#           IP address or the word "default" for all hosts. Any
+#           host matching this field is given privileges as specified
+#           by the following fields. Only one default line may
+#           appear in the file. If a host matches more than one
+#           specified permission, the most specific match is used.
+#       connect:
+#           Valid values are either "connect" or "noconnect" to
+#           either allow or disallow connections. The value "hang" is also
+#           allowed for connection-based interfaces; this causes the connection
+#           to be held open without allowing the client perform any operations.
+#           This is useful for stopping clients which reconnect rapidly upon
+#           rejection. For interfaces which are not connection-based, "hang"
+#           implies "noconnect".
+#       post:
+#           Valid values are either "post" or "nopost" to either
+#           allow or disallow posting.
+#       update:
+#           Valid values are either "update" or "noupdate" to either
+#           allow or disallow remotely initiated updates.
+#       get:
+#           Valid values are either "get" or "noget" to either
+#           allow or disallow remote acquisition of server files.
+#       put:
+#           Valid values are either "put" or "noput" to either
+#           allow or disallow remote replacement of server files (limited).
+#
+#  client_perms:
+#       Whether to allow/disallow DB entries/handshakes from a particular
+#       client/client revision. By default, they are allowed from
+#       any client, unless prohibited by a perms rule. There may be
+#       multiple of these lines in the file in order to specify different
+#       permissions for various clients. If a client/revision matches
+#       more than one rule, the last match is used.
+#
+#       The format is:
+#
+#       client_perms: interface permission client low_revision high_revision
+#
+#       The arguments are:
+#
+#       interface: Valid values are: c, h, e and s, which correspond to CDDBP,
+#           HTTP, email and submissions. You may put any or all of these
+#           values in a single argument, with no separating spaces. If a
+#           single '-' character appears before these values, then all
+#           interfaces not listed after the '-' are specified; a '-' by
+#           itself specifies all interfaces.
+#       permission: Valid values are either "allow" or "disallow" to
+#           either allow or disallow submissions/connections from the
+#           client/revision. The value "hang" is also allowed for connection-
+#           based interfaces; this causes the connection to be held open
+#           without allowing the client perform any operations. This is
+#           useful for stopping clients which reconnect rapidly upon rejection.
+#           For interfaces which are not connection-based, "hang" implies
+#           "noconnect".
+#       client: A string with no white space which must exactly match the
+#           client name being compared. The string "-" is a wildcard which
+#           matches all clients; the client revision is ignored in this case.
+#       low_revision:
+#       high_revision:
+#           Both are strings with no white space representing the range of
+#           client revisions to be matched. The server parses the revision
+#           for rev level numbers and alpha, beta and patch level strings
+#           when comparing ranges. The string "-" is a wildcard which matches
+#           all revisions.
+#
+#       Example:
+#
+#       For the following perms rule, submissions from xmcd versions 1.4
+#       through 1.7 would be rejected:
+#
+#       client_perms: s disallow xmcd 1.4 1.7
+#
+#       For the following perms rule, CDDBP and HTTP connections from xmcd
+#       version 2.0PL1 and on would be accepted:
+#
+#       client_perms: ch allow xmcd 2.0PL1 -
+#
+#       For the following perms rule, all submissions from DiscPlay would
+#       would be rejected:
+#
+#       client_perms: -che disallow DiscPlay - -
+#
+#       For the following perms rule, all connections and submissions from
+#       EasyCD versions up to and including 2.3.1 would be accepted:
+#
+#       client_perms: - allow EasyCD - 2.3.1
+#

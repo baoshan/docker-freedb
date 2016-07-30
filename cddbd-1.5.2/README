@@ -1,0 +1,123 @@
+The Internet CD Database Server (cddbd v1.5.2) README
+
+Copyright (c) 1996  Steve Scherf (steve@moonsoft.com)
+Portions Copyright (c) 1999-2006  by various authors
+
+$Id: README,v 1.21.2.3 2006/04/14 14:45:06 joerg78 Exp $
+Email:	info@freedb.org
+
+
+INTRODUCTION
+------------
+
+The CD Database Server (cddbd) is a program designed to allow remote access
+of xmcd-style Compact Disc database entries via the Internet. Xmcd is an
+X11/Motif-based CD player utility written by Ti Kan, which, as of version
+2.0 supports remote access of CDDB protocol servers. While xmcd was the first
+application to allow access to a CDDB protocol server, there are now hundreds
+of applications supporting the CDDB1 protocol. The list is growing extremely
+fast. You can find an incomplete list of such applications at www.freedb.org
+
+Please see the file COPYING for the GNU General Public License.
+Please see the file MANIFEST for the list of files in the CDDB server package.
+Please see the file CDDBD_HOWTO for information on running the CDDB daemon.
+Please see the files CDDBPROTO and DBFORMAT for information on using the
+server from an application.
+Please see the file CHANGELOG for a list of changes in this and earlier 
+versions.
+
+Permission for products to use the source code, text and/or interface
+definitions provided in this package is granted with the following
+restrictions:
+
+- Products that incorporate use of the GPL portions of the CD database server
+  package in any way must adhere to the language of the GNU GPL.
+
+- The copyright for the crc.c module is owned by the Regents of the University
+  of California. Please see the copyright notice in this module for the terms
+  of their copyright.
+
+- Products that incorporate any portion of the CD database server must
+  explicitly give credit to the author both in all documentation and when the
+  product is operating. The latter need not appear conspicuously, but should be
+  viewable by the user through some obvious means.
+
+
+SUPPORTED PLATFORMS
+-------------------
+
+The server should compile and run on just about any Unix or Unix-like
+system. At the time of this release, cddbd has been successfully tested
+on numerous platforms, including:
+
+Cygwin 1.5.5
+FreeBSD 4.10-BETA
+HP-UX 10.20
+Linux 2.4.x (x86)
+Linux 2.2.20 (Alpha)
+Linux 2.4.21 (AMD64)
+MacOS X 10.x
+Mips-SGI-Irix 6.5
+NetBSD 1.6.1
+OpenBSD 3.4
+Solaris 9 / SunOS 5.9 (Sparc)
+Solaris 9 (x86)
+Solaris 10 (x86)
+
+If you have successfully tested other systems, please let us know.
+
+
+ACKNOWLEDGEMENTS
+----------------
+
+Credit must go to:
+
+- Ti Kan (ti@amb.org) for creating cddb, the CD database, and coming up with the
+  idea of using the Internet to give users access to the database. His prototype
+  is the basis for cddbd. 
+- Steve Scherf (steve@moonsoft.com) for creating the cddbd-server-software.
+  Without his effort, freedb would not be.
+- Jeffery Sumler for sending the patch for cddbd version 1.4b39PL1.
+- Oliver Fleischmann for implementing protocol level 4, the "cddb lscat" and the
+  "discid" command.
+- Florian Maul for implementing protocol level 5 and the "cddb unlink" command.
+- Gerhard Gonter for lots of small improvements and bug fixes to the cddbd code.
+- Edmund Grimley Evans, Jon F. Zahornacky and Jörg Hevers for implementing
+  UTF-8 support.
+- Frédéric Leroy for the crunchfuzzy patch to increase the effectivity and
+  reduce the size of the fuzzy matching hash file.
+- Tomas Menzl for implementing the Windows database format support.
+- Ari Sundholm for lots of bugfixes and improvements, especially for the
+  Windows database format support.
+
+Thanks go to the many system administrators who have volunteered the use of
+their sites as public CD database servers. Without them this probably would
+not have become so popular! Thanks also go to the many users who use the
+servers and submit new entries every day.
+
+
+WHERE TO GET CDDBD
+------------------
+
+Cddbd servers are maintained at numerous sites on the Internet, but if you
+would like to start your own, this package contains the source code needed
+to do so. This package can be obtained at www.freedb.org in the
+downloads-section. The submit.cgi, which is needed for accepting http-submits
+can be obtained separately.
+
+The CD database itself is a rather large package that can be acquired
+separately. The freedb public CD database is available via anonymous FTP from
+
+        ftp://ftp.freedb.org/pub/freedb/ 
+
+and many other mirror-sites which are listed at www.freedb.org in the
+downloads-section.
+
+
+HELP WITH CDDBD
+---------------
+
+If you have any questions or comments about cddbd, the freedb team can be
+reached via email at:
+
+info@freedb.org

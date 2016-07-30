@@ -1,0 +1,42 @@
+CDDB Protocol Server v1.5.2 MANIFEST
+
+MANIFEST
+--------
+
+You should have received the following files in the cddbd-1.5.2 package.
+If you are missing any of these files, the package can be obtained via
+anonymous ftp from one of the ftp servers listed on the freedb website at 
+http://www.freedb.org.
+
+-r--r--r--    1 freedb   freedb      74493 Jul  1 17:47 CDDBD_HOWTO
+-r--r--r--    1 freedb   freedb      24144 Jul  1 17:47 CDDBPROTO
+-r--r--r--    1 freedb   freedb      10229 Jul  1 17:47 CHANGELOG
+-r--r--r--    1 freedb   freedb      18009 Jul  1 17:47 COPYING
+-r--r--r--    1 freedb   freedb       9911 Jul  1 17:47 DBFORMAT
+-r--r--r--    1 freedb   freedb       2390 Jul  1 17:47 MANIFEST
+-r--r--r--    1 freedb   freedb       4624 Jul  1 17:47 README
+-r--r--r--    1 freedb   freedb      18569 Jul  1 17:47 access.hdr
+-r--r--r--    1 freedb   freedb       2603 Jul  1 17:47 bit_array.c
+-r--r--r--    1 freedb   freedb       1272 Jul  1 17:47 bit_array.h
+-r--r--r--    1 freedb   freedb      11836 Jul  1 17:47 cddbd.1
+-r--r--r--    1 freedb   freedb     125535 Jul  1 17:47 cddbd.c
+-r--r--r--    1 freedb   freedb      31669 Jul  1 17:47 cddbd.h
+-r--r--r--    1 freedb   freedb       4314 Jul  1 17:47 charset.c
+-r-xr--r--    1 freedb   freedb       5161 Jul  1 17:47 config.sh
+-r--r--r--    1 freedb   freedb       7131 Jul  1 17:47 crc.c
+-r--r--r--    1 freedb   freedb     105725 Jul  1 17:47 db.c
+-r--r--r--    1 freedb   freedb      13812 Jul  1 17:47 encode.c
+-r--r--r--    1 freedb   freedb      19186 Jul  1 17:47 fuzzy.c
+-r--r--r--    1 freedb   freedb       6569 Jul  1 17:47 help.c
+-r--r--r--    1 freedb   freedb      39567 Jul  1 17:47 inet.c
+-r-xr--r--    1 freedb   freedb      18226 Jul  1 17:47 install.sh
+-r--r--r--    1 freedb   freedb       2445 Jul  1 17:47 list.h
+-r--r--r--    1 freedb   freedb      31309 Jul  1 17:47 mail.c
+-r--r--r--    1 freedb   freedb       4541 Jul  1 17:47 makefile
+-r--r--r--    1 freedb   freedb       1565 Jul  1 17:47 passwd.hdr
+-r--r--r--    1 freedb   freedb       1202 Jul  1 17:47 patchlevel.h
+-r--r--r--    1 freedb   freedb       5551 Jul  1 17:47 sites.hdr
+-r--r--r--    1 freedb   freedb       1692 Jul  1 17:47 strutil.c
+-r--r--r--    1 freedb   freedb       4110 Jul  1 17:47 submit.cgi.template
+-r--r--r--    1 freedb   freedb       2353 Jul  1 17:47 utf8.h
+-r--r--r--    1 freedb   freedb      37871 Jul  1 17:47 xmit.c

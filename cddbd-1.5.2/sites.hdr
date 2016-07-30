@@ -1,0 +1,119 @@
+#   cddbd - CD Database Protocol Server
+#
+#   sites.hdr: header for the sites-file
+#   @(#)$Id: sites.hdr,v 1.9 2004/01/14 18:00:53 gonter Exp $
+#
+#   Copyright (C) 1996  Steve Scherf (steve@moonsoft.com)
+#   Portions Copyright (C) 2001-2003  by various authors 
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#
+#   CDDBD sites file
+#
+#   This file contains the hostname and/or email addresses of
+#   remote database servers that are fed database entries by your
+#   site, that are queried for log information, or that are available
+#   for client access.
+#    
+#   Remote site entries may take three forms:
+#
+#       site.domain.com  cddbp [port|-] [flags|-] [pwdlbl]
+#       site.domain.com  smtp  user [flags|-] [pwdlbl]
+#       site.domain.com  info  proto <port|-> addr lat long description
+#
+#   It is allowed to have up to one of each form for the same site, except
+#   that there may be more than one "info" entry for a given site if it
+#   is accessible by multiple protocols.
+#
+#   In addition, there is a fourth form which is used for describing
+#   groups of site entries:
+#
+#       group_name  group  site.domain.com ... anothersite.domainN.com
+#
+#   The first form specifies an Internet host address that can be reached
+#   with CDDBP for the purpose of uploading new database entries, or for
+#   issuing CDDBP commands.
+#
+#   The "port" argument is optional, and if it is not specified (or if "-"
+#   is specified) then the default port will be looked up in /etc/services.
+#   Failing that, a built-in default will be used. The port number should
+#   not be necessary unless the cddb server being accessed is at a
+#   nonstandard port.
+#
+#   The "flags" argument is optional, and if it is not specified (or
+#   if "-" is specified), then no flags will be set. Otherwise, the
+#   desired flags for the site should appear with no separating white
+#   space. Valid flags are:
+#
+#       t: Do not transmit to this site.
+#       m: Site is running an old server with bad Mime handling.
+#       f: Site requires the old xmcd file format (no DGENRE/DYEAR).
+#       i: Site does not support UTF-8, so always send in LATIN1 (ISO-8859-1)
+#
+#   Please note, that all flags except for the t flag only apply to
+#   smtp transmissions. If cddbp is used, these flags will be ignored.
+#
+#   The "pwdlbl" argument is optional, and if it is not specified then
+#   no password is used when conversing with that host. If specified,
+#   the password corresponding to the password label is looked up in the
+#   password file and used when interacting with that host. Example:
+#
+#       freedb.freedb.org cddbp 8880 t freedb_passwd
+#    
+#   The second form specifies an email address that new database entries
+#   will be emailed to via SMTP. The "user" argument will be combined
+#   with the site name to form the email address. The "flags" and
+#   "pwdkey" arguments are identical to those defined above. Example:
+#
+#       freedb.org smtp user - freedb_passwd
+#
+#   This causes transmit mail to be sent to user@freedb.org.
+#    
+#   The third form specifies location information for a known Internet
+#   server site. This information is displayed as output with the "sites"
+#   server command. The "proto" argument specifies the protocol to be used
+#   to access the server (so far only CDDBP and HTTP). The "port" argument
+#   specifies the port that the server resides at on the remote site;
+#   a "-" may be specified if the remote server resides at the default
+#   port for that protocol. The "addr" argument specifies any additional
+#   addressing information required to access the server, or a "-" if none.
+#   For HTTP, this is the path to the server CGI script. The "latitude" and
+#   "longitude" arguments specify the global coordinates of the server
+#   site. These should be specified in the following format:
+#
+#       CDDD.MM
+#
+#   where "C" is the compass direction (N, E, W, S), "DDD" is the
+#   degrees, and "MM" is the minutes. The "description" is an
+#   arbitrary length string describing the site. Example:
+#
+#       us.freedb.org info cddbp 8880 - N037.21 W121.55 San Jose, CA USA
+#
+#   The fifth form is not truly a site entry, but rather an alias for
+#   a group of entries. When a group name is used as a command line
+#   argument to the server in place of a site name, the server performs
+#   the requested operation to all sites in the group. Example:
+#
+#       north_america group joes.site.com bobs.computer.com bills.place.com
+#
+#   If the server is directed to transmit to "north_america", it spawns
+#   off processes to transmit to joes.site.com, bobs.computer.com and
+#   bills.place.com. All three of those sites must have valid cddbp or
+#   smtp entries in the sites file. If more than one group name definition
+#   appears with the same group name, both lists of sites are added
+#   together.
+#
+#   End of header - DO NOT REMOVE THIS LINE.

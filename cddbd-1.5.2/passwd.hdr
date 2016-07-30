@@ -1,0 +1,38 @@
+#   cddbd - CD Database Protocol Server
+#
+#   passwd.hdr: header for the passwd-file
+#   @(#)$Id: passwd.hdr,v 1.5 2001/10/29 00:07:34 joerg78 Exp $
+#
+#   Copyright (C) 1996  Steve Scherf (steve@moonsoft.com)
+#
+#   This program is free software; you can redistribute it and/or modify
+#   it under the terms of the GNU General Public License as published by
+#   the Free Software Foundation; either version 2 of the License, or
+#   (at your option) any later version.
+#
+#   This program is distributed in the hope that it will be useful,
+#   but WITHOUT ANY WARRANTY; without even the implied warranty of
+#   MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+#   GNU General Public License for more details.
+#
+#   You should have received a copy of the GNU General Public License
+#   along with this program; if not, write to the Free Software
+#   Foundation, Inc., 59 Temple Place, Suite 330, Boston, MA  02111-1307  USA
+#
+#
+#   CDDBD password file
+#
+#   This file contains passwords used when conversing with remote servers.
+#   The format is as follows:
+#
+#       pwdlbl: password
+#
+#   The "pwdlbl" argument is a string corresponding to a password label
+#   specified in either the sites and/or access files. The "password"
+#   argument is the 32-character hex password string used when
+#   conversing with the remote server associated with the password label.
+#
+#   NOTE: This file must not be publically readable. The server will
+#   refuse to access this file if permissions allow others to read it.
+#
+#   End of header - DO NOT REMOVE THIS LINE.

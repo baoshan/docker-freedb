@@ -1,0 +1,1626 @@
+CDDB Protocol Server v1.5.2 HOWTO
+
+Copyright (C) 1996  Steve Scherf (steve@moonsoft.com)
+Portions Copyright (C) 2001-2006 by various authors
+
+$Id: CDDBD_HOWTO,v 1.19.2.6 2006/07/01 17:38:10 megari Exp $
+
+Introduction:
+-------------
+
+The CDDB daemon, cddbd, is an all-purpose Compact Disc database manager
+for Unix designed to work with the popular "xmcd cddb" database. This document
+describes how to configure, compile and run the daemon in its various
+operating modes.
+
+
+Table of Contents:
+------------------
+
+Section 1:   Compiling the Daemon
+Section 2:   Installing the Daemon
+Section 3:   Operating Modes
+Section 3.1: Running the Daemon as an Internet CD Database Server
+Section 3.2: Running the Daemon as an HTTP CGI CD Database Server
+Section 3.3: Configuring the Daemon to Accept Automatic Updates
+Section 3.4: Configuring the Daemon to Accept Email Submissions
+Section 3.5: Configuring the Daemon to Transmit Entries to Remote Sites
+Section 4:   How Clients Should Use the Server
+Section 5:   Windows format support
+Section 5.1: Windows format mode prerequisites
+Section 5.2: Configuring Windows mode, compiling
+Section 5.3: Sanity checks
+Section 6:   Getting Help
+Appendix A:  The Access File
+Appendix B:  The Sites File
+Appendix C:  Other Files
+Appendix D:  Server Options
+
+
+1. Compiling the CDDB Daemon
+-----------------------------
+
+Before compiling, you must first run the config.sh script. This is only
+the preliminary configuration step, so don't worry about configuration
+and installation details yet. The script will ask you for the path to
+the directory in which the server access file will be located. This path
+is compiled into the server, but can be overridden when you actually
+run the server. The path should generally be the path to the directory
+which will you will be specifying later in the installation phase as the
+daemon's work directory.
+
+Run the script by typing, "sh config.sh", and answer the questions.
+
+When it asks for a list of trusted users, answer with the list of users
+other than the database owner who will be running the server. There should
+be very few, if any. One example of a user that should be in this list is
+the real user name (as opposed to effective) under which mail filters are
+executed. You probably only need enter names here if you will be running
+the server setuid/setgid. See the section below on installing the daemon and
+the section on running the daemon as a mail filter for more information on
+running setuid.
+
+The next question is whether to use the "Windows format" of the database.
+The standard format stores each database entry in a separate file, while 
+the "Windows format" consists of files which contain several database entries
+each. This helps systems, which cannot handle the large number of files the
+standard format database consists of properly. Official freedb mirrors need
+to use the standard format database and have to answer no to this question.
+For more information on "Windows format" support, see section 5.
+
+Finally you can let the server skip the peer address resolution. This is e.g.
+handy when the cddbd server is used in Cygwin on a machine without DNS access
+as it takes about 5s to timeout the resolution request. If you keep the
+resolution (the default), it will behave the same (apart from the annoying
+delay in this scenario). If you enable this option, you can not use host names
+to specify access permissions! Therefore this option MUST NOT be used on
+official freedb servers or mirrors, so answer no here if you want to set up an
+official server!
+
+You are now ready to compile.
+
+You must run this step before any other, or that step will fail. Once you have
+configured cddbd, however, you can run the other steps as often as you like.
+
+To compile cddbd, type, "make". There is a simple stock makefile included
+in the distribution that should work on most Unix and Unix-like systems.
+The program is fairly vanilla and should compile without additional flags
+or libraries, but there is no guarantee of this. Quite often socket-related
+libraries such as libnsl, libsocket or libbsd, among others, need to be
+specified; this is because Internet socket calls are not automatically
+included by many Unix compilers.
+
+Add compiler flags to the CFLAGS makefile variable, and loader options to
+the LDFLAGS variable as necessary to make the daemon compile.
+
+
+2. Installing the Daemon
+------------------------
+
+To install cddbd, type, "sh install.sh". The script will ask you questions
+about where you want things to point, and which key features you want
+enabled. This script will install the binary and create all needed directories
+and files.
+
+You might want to install the freedb CD database itself before proceeding
+with this step, or the install script will complain. The installation will
+still work, but you need to be sure to install the database at the location
+you specify during this step or the server will be unable to locate the
+database. See the README file included with the cddbd distribution for
+details on how to obtain the freedb database.
+
+Be sure to change the userid and file-permissions of the database extracted
+from the tar-distribution-file to the proper values before running the daemon;
+this is usually your own user ID, but doesn't necessarily have to be. You can
+configure the server to run with the database owned by a user ID other than the
+owner of the daemon if you wish. Setting up the server to run with the database
+owned by someone else is described below. 
+
+In order to properly answer the installation questions, you should have some
+idea of how you will be using the daemon. There are several operating modes
+that you may wish to configure the daemon for, and you should decide which
+of these you will be using before you proceed with installation. However,
+if you make a mistake during installation, you may reinstall the server at
+any time. You can also edit the access file by hand to effectively configure
+the server for the different operating modes. The various modes are described
+in detail in the following sections, so you might want to read ahead a bit
+before installing the daemon.
+
+As you run the install script, it will ask various questions with default
+answers in brackets. If you press return in response to questions, the
+specified default will be used.
+
+If you are not the super-user when installing the daemon, the script will
+ensure that you know what you're doing. It is possible to install and run
+the server as a non-root user, so don't fret if you're just a normal user
+or simply don't want to run the server as root. Just tell the script to
+continue when it asks.
+
+The script will ask for various pathnames needed to run the daemon. Just
+press return to accept the listed default. The "binary directory" is where
+the daemon itself will be installed. The "work directory" is where the
+daemon puts the files it needs to operate. The "database directory" is
+where the you installed (or will install) the CD database.
+
+The script will ask if you want to enable HTTP access to the server. If
+you answer yes, it will prompt you for the directory at which to install the
+server at for CGI access.
+
+You will be asked if you will be operating a master database hub. You probably
+want to answer no, unless you will be maintaining remote database mirror sites
+or you want to accept e-mail submissions or transmissions (see Section 3.4).
+If you answer yes, you will be asked for an SMTP server host. This should
+probably be "localhost", unless your local SMTP server is somewhere else. If
+you don't have an SMTP server, you should just choose localhost. You won't
+be able to run the daemon in mail filter mode, but you will still be able
+to run as a master hub. When asked for an email address, you should specify
+the address of the user who should receive submission rejection notices
+in the event of submission errors. This address must be specific enough for
+the daemon to be able to properly submit mail to the desired user from the
+system that the daemon will run on.
+
+The next set of questions gets a little more complicated. The script asks what
+user/group will own the daemon, what the daemon work file permissions should
+be, what user/group owns the database, and what the database file permissions
+should be. In general, you should just accept the defaults. You have little
+choice with respect to daemon ownership unless you have root capabilities,
+as the install script will attempt to set file ownerships and permissions
+according to the selections that you make. If you are not root and you specify
+an owner other than yourself, the install script will probably be unable to
+create files accordingly.
+
+If you don't own the database, do not despair. It doesn't matter too much
+what you choose for the database settings in this case. Unless you own
+the database, you will not be able to modify it, and that is the only time
+these values matter. In this case, you will only be able to use the daemon
+for read-only operations. In effect, you will be limited to using the daemon
+as a database server. Other operations such as updates and check-and-modify,
+require that you have the proper database permissions.
+
+If you do own the database, or will be running the daemon as root, you
+should specify the correct owner of the database or the daemon may change
+ownership of database entries to the user you specify. It is suggested that
+you use the default file and directory permissions (644 and 755 respectively)
+for the database.
+
+Note: you should instead use 666 and 777 if the database directory will be
+shared with users of xmcd, as xmcd expects to be able to write to the
+database when saving new or modified entries. It is not suggested that you
+share the database, as xmcd may interfere with the operation of the daemon.
+The daemon depends upon special file locking for certain operations, and
+xmcd does not observe this locking. Also, files added to the database by xmcd
+will not be found in the fuzzy matching hash file unless you manually
+regenerate it.
+
+In all cases, if you wish you can specify a numerical user or group ID
+instead of a name. This may be necessary on sites where NIS is running,
+as there seems to be a bug in some versions of the getgrent library call
+which causes it to return local group IDs instead of NIS IDs. It is also
+useful if your system's passwd or group files are incorrect.
+
+The next set of questions concern configuring the server for automatic
+database updates. You probably want to answer no to this question unless
+you are sure this is what you want. In order for this to work, you must
+make arrangements for a master site (currently only freedb.org) to
+transmit entries to your site. If this is what you want, answer yes. Accept
+the default database feed site, which just happens to be freedb.org, unless
+you will be receiving updates from some other site. There's little point in
+choosing a different site unless you're setting up your own distribution
+scheme.
+
+The script next asks if you wish to create a "message of the day" file.
+The information in this file is displayed as the output of the "motd" server
+command. If you answer yes, the next question will ask what editor you wish
+to use and then launch that editor. Enter the desired information, save, and
+quit from the editor.
+
+The script will then install the important daemon files. Watch for errors,
+as these files are important.
+
+The last question asks whether you wish to create the fuzzy matching hash
+file. You should answer yes to this, unless you won't be using the daemon
+as a server. If you don't, the daemon will complain when run as a server,
+although it will work for the most part. This step takes some time, as
+considerable CPU and disk bandwidth are required. You can ignore most errors,
+if any, as there may be some questionable database entries (depending on
+what version of the database you are using). These are just ignored, and
+simply won't appear in the hash file.
+
+You are now done installing! There are a few other steps required to get
+the daemon running, depending on what you will be using it for. Refer to
+the "Operating Modes" section for information on what you still need to
+do.
+
+
+3. Operating Modes
+------------------
+
+The server has several basic functions:
+
+- Internet server:
+
+  Functions as a server for Internet-aware CD-player programs that wish to
+  perform database lookups.
+
+- CGI program:
+
+  Much the same as above, except the server functions as a CGI program
+  accessible via HTTP servers.
+
+- Database manager:
+
+  Automatically maintains and verifies the CD database.
+
+- Email processor:
+
+  Accepts new database submissions via email and integrates them into the
+  database.
+
+The four sections below explain how to configure and run the server in the
+various operating modes.
+
+
+Section 3.1 How to Run the Daemon as an Internet Server
+-------------------------------------------------------
+
+The main function of the daemon is to act as an Internet CDDB server. In
+this mode, the daemon allows users to connect via numerous popular CD player
+programs and automatically download database entries. Generally, when a
+user inserts a CD into his CD ROM drive, his CD player software will perform
+a query of an Internet server whose address the user specifies. If the server
+locates a match, the software downloads it from the server and displays it
+for the user.
+
+There are numerous official server sites worldwide which are already available
+for public use, but more are always welcome. If you wish to run one yourself,
+this section will explain how. The server also comes in handy if you are
+behind a firewall and can't access any of the public servers. You can simply
+run your own private server behind your firewall, and it will be accessible
+from within your local network.
+
+Once you have compiled and installed the server as described in previous
+sections, there is little left for you to do. You simply need to arrange
+for the server to run when a user attempts to connect to it. There are
+two ways of going about this. You can have the server run through a
+super-server (like inetd or xinetd) or you can run the server in standalone
+mode.
+
+To run the server through a super-server you (or your administrator) need
+to put an entry for cddbp into /etc/services. If you have a file named
+/etc/inetd.conf you are probably running the inetd super-server and you
+need to add an entry to this file. If you have a directory named /etc/xinetd.d
+you are probably running the xinetd super-server and you need to create a
+configuration file /etc/xinetd.d/cddb. The format of these files may vary from
+platform to platform, but a fairly generic example of the necessary lines is 
+included below.
+
+The /etc/services entry might look like this:
+
+cddbp		8880/tcp			# CDDB server
+
+Note that the port is "8880". By convention, this (or the old standard port
+888) is the port that cddbd should reside at. If you do not assign one of
+these ports to cddbd, clients that wish to access the database on your system
+may be unable to connect to the server.
+
+The /etc/inetd.conf line might look like this:
+
+# CDDB server
+cddbp   stream  tcp     nowait  cddb    /usr/local/bin/cddbd cddbd
+
+Note that this example assumes that the server resides in /usr/local/bin,
+and that the server is owned by the user "cddb". You should modify your
+version of this line to match the actual location and owner of the binary
+on your system.
+
+The /etc/xinetd.d/cddb file might look like this:
+
+# ------snip------
+# The cddb daemon (cddb) serves information for CDs (eg, title, artist and
+# track information). See www.freedb.org.
+#
+# Modify the " user = " line to match the choices you made when installing
+# the daemon.
+#
+# The service name must match the name of the entry in /etc/services
+
+service cddbp
+{
+	disable		    = no
+        socket_type         = stream
+        protocol            = tcp
+        wait                = no
+        user                = cddb
+        server              = /usr/local/bin/cddbd
+}
+# ------snip------
+
+To run the server standalone, simply execute it in the following manner:
+
+cddbd -s default
+
+This will cause the server to run in the background and listen at port 8880
+for user connections. If you wish the server to listen at a different port,
+you can substitute that port number for the word "default" in the example
+above. If you're not running the server with root permissions, you will 
+probably not be able to use a port number below 1024, as these port numbers
+are usually privileged. 
+Most clients do support the ability to access the server at a nonstandard 
+port, but need to be configured to do so.
+
+In standalone mode, the server will run until killed. It's best to use SIGHUP
+if you wish to forcefully kill the server.
+
+Note that it may be a good idea to set up an entry in /etc/services
+for cddbp, regardless of how you run the server. It will look in this file
+when determining what the default port to use is. It has a built-in default
+of 8880 that is used if /etc/services has no cddbp entry, so this may not be
+necessary.
+
+If you changed configuration files for a super-server, you will probably need
+to restart it before your changes take effect (for xinetd on a Redhat-like
+system use the command "/sbin/service xinetd restart" then use
+"tail /var/log/messages" to check that the service started correctly).
+
+After the daemon is configured and ready to go, you should probably test
+things out. The simplest way to make sure it's answering is to telnet
+to port 8880 on the system where the server is running and look for the
+sign-on banner. It looks something like this:
+
+201 zaphod CDDBP server v1.4PL0 ready at Fri Jan 26 23:03:51 2001
+
+This signifies that it's ready to accept commands. To test whether or not
+it is really answering, try typing "stat" followed by the "enter" key. It
+should print out various server statistics. The content of the output
+is not important. What's important is that you see data, with a "." on the
+last line by itself. This indicates that it is running properly and is
+capable of accepting commands and returning data to the user.
+
+The acid test is to actually use the server to download database entries
+to a CD player client program. There are several of these (Take a look at the
+freedb-homepage for a list). Since you are installing the server on a Unix
+system, you can e.g. use "xmcd", a common Unix CD player.
+
+Once the CD player software is installed and running, follow the instructions
+in the CD player distribution package which detail how to configure it
+to query remote servers. Be sure to configure the client program to query
+the system on which you installed the server. Once it's all running, insert
+the CD of your choice in your CD ROM drive and do whatever is needed by the
+application to initiate a query. With xmcd, for example, this is automatic
+so you need only wait for a short time after inserting a CD. Other applications
+may require you to click on a button to initiate a database server query.
+
+If the entry is found in the database, your application should notify you
+in some way that a match was found for your CD. Not all applications will
+tell you if there was no match found, however. For absolute verification,
+check the daemon's log file. Unless you disabled logging during installation,
+every server access is logged, so you should see an entry made each time you
+access the server.
+
+Please note:
+
+- DO NOT run the server on multiple systems which use the same NFS-mounted
+cddbd work directory. This WILL NOT WORK, as the server implements filesystem
+locks that don't work if shared by more than one system. It is okay if
+the work directory is NFS-mounted, as long as it is guaranteed that one
+system and only one system will be running the server. If you want to
+run the server under these conditions, create a unique work directory for
+each system and compile a copy of the server for each system with the
+appropriate access file pathname.
+
+Also, DO NOT run the server on separate systems that share an NFS-mounted
+copy of the database. You can do this if necessary, but it precludes
+configuring the server to accept automatic updates or as a master hub.
+It also precludes the use of the "-c" option, or any other server mode
+that modifies the database.
+
+- If you wish to (re)build the fuzzy matching hash file at any time run the
+server with the "-f" option:
+
+cddbd -fdv
+
+The "d" and "v" options put the server in debug and verbose mode respectively.
+Debug mode causes output to go to stdout rather than the log file. If you want
+info from the build to go the the log file, you can skip the "d" option.
+Building the hash file may take some time, depending on your current system
+load and how fast your system's CPU and disk are. You only need to do this
+after installing the server, after installing a new version of the CD
+database, or after performing a database update (see the section on automatic
+updates below).
+
+- You may notice that the log file grows as the server is used. Unlike most
+Unix system log files, this one does not grow indefinitely and needn't be
+monitored and truncated manually as it grows. The cddbd log is a circular
+file that is kept at a constant size, as defined in the access file (see
+the section on the access file below).
+
+
+Section 3.2: How to Run the Daemon as an HTTP CGI Server
+--------------------------------------------------------
+
+First, why would you want to do this? I have received many requests for
+some way for users who are stuck behind firewalls to be able to access
+the database, and this seemed like a good way. Many firewalls are configured
+to allow outbound HTTP connections so users can at least access the web.
+There is nothing stopping a CD player application from going out and querying
+HTTP servers in this situation. With cddbd configured for access as a CGI
+script, CD players can indirectly access the database through HTTP, avoiding
+firewall restrictions. Nearly all of the CD player programs that support
+accessing the CD database over the Internet also support access through HTTP.
+
+Setting up the daemon as a CGI script is simple. During installation, if you
+answered yes when asked whether you wanted to allow server access via HTTP,
+you are already well on your way. The path you specified to your CGI
+directory must be accessible by your system's web server, and your server
+must be configured to execute CGI programs out of that directory. The
+server is installed in the CGI directory as "cddb.cgi".
+
+Be aware that some servers will not execute CGI programs unless they're
+setuid to your user ID. To test whether or not CGI mode access is working,
+crank up your favorite web browser and enter the following URL:
+
+http://host.domain.com/path/cddb.cgi?cmd=stat&hello=me+host+none+1.0&proto=1
+
+Where "host.domain.com" is the Internet address of your web server, and
+"path" is the path to the server CGI program. If it works, you should see
+something like:
+
+210 OK, status information follows (until terminating `.')
+
+followed by several lines of server status information. If it doesn't
+work, check to make sure the path to the daemon is publically accessible,
+and that it's publically executable. As previously mentioned, some HTTP
+servers require CGI programs to be setuid. Also, the daemon should
+be setuid/setgid if the uid/gid of the HTTP daemon on your system is
+something other than root. If it doesn't work after you ensure that
+permissions are not a problem, it may be that your HTTP server does not
+allow CGI execution at all. It's also possible that the daemon is being
+run, but isn't configured properly. If this is the case, you might see the
+daemon sending error messages to your web browser instead of the expected
+status information. If so, see the section on server configuration.
+
+Please note:
+
+- By convention, the daemon CGI path should be "/~cddb/cddb.cgi" if at all
+possible. Understandably, this may not be possible for you to arrange unless
+you have administration power on your system, but be aware that some (less
+robust) CD player programs may expect this path.
+
+
+Section 3.3: Configuring the Daemon to Accept Automatic Updates
+---------------------------------------------------------------
+
+The publically available freedb distribution contains more than 2.000.000 
+entries at the time of this release. However, the database is constantly 
+growing on a daily basis as new entries are submitted by dedicated users. 
+There are numerous official server sites worldwide that are fed new entries 
+each day as they arrive and are entered into the master database. These
+official sites are maintained for public use. If you wish to run such a site,
+you are welcome to. It can be arranged for your site to receive daily updates 
+from the master database via the Internet if you are willing to become an 
+official freedb-mirror.
+
+If you wish to receive updates from the master database, you must contact
+the freedb team for the feed to be initiated. Once the feed is started, you will
+receive hourly updates. For your system to accept updates, however, you will need
+to set up cddbd to allow writes from the master site.
+
+The most important step is to add a line to your access file to allow
+connections from the site that will be feeding you new entries. While
+any site can feed any other site, the only site I know of that actually
+does this at this time is the master hub at "us.freedb.org". If you
+wanted, you could set up your own master/slave hierarchy, but freedb.org
+would have to be at the end of the chain! (Unless you come up with a source
+of original cddb entries yourself. :)
+
+If you answered "yes" during installation as to whether you wanted automatic
+updates, you are already set. If you answered no, or didn't choose
+freedb.org as your master site, you can either reinstall the server (no
+need to remove old server files - just install over the current installation),
+or edit the access file by hand. If you choose to do it by hand, you
+will need to add a "permissions" entry for "*.freedb.org" with "connect",
+"post", "update" and "get" specified. If you have trouble, send an email to the
+freedb team. I suggest just using the install script to save the hassle.
+
+That's all you need to do. There are several ways of verifying that it all
+works. If you configure your "logging" access parameter to log updates with
+the "post" option (this option may already have been set by the install
+script), the daemon will log all updates. You can note the update traffic with
+the "log day" server command. To see the total database count, you may use
+the "stat" server command.
+
+
+Section 3.4: Configuring the Daemon to Accept Email Submissions
+---------------------------------------------------------------
+
+This mode is used when accepting email submissions to the database. This
+method yields the same results as direct reception (described in the
+previous section), though entries are sent and received via email. This
+is useful if your site is behind a firewall and can't accept incoming
+connections, or if you and/or your upstream "master" site are not on a
+connected network.
+
+To configure the server to run in email mode, I suggest you (re)install
+the server and answer yes when asked if you will be running the server
+as a master hub. The server was designed to accept email submissions
+when running as a master, though it works just fine if you are running a
+slave site. Future versions of the install script will possibly provide the
+choice for you to accept email submissions without making you answer
+yes to this question.
+
+Answer the SMTP host and email address questions. The email address
+is the name that will be put into rejected submissions, so it should
+specify a valid address at which you can be reached. This address will
+also be used to email rejected submissions to. If you don't want to
+see these, remove the "bounce_email" access file parameter.
+
+If you are running a master hub, you're set so far. If not, you need to
+modify your access file at this point. Change the "dup_policy" parameter
+to "always", the "postdir" parameter to specify the same pathname
+as your "cddbdir" parameter.
+
+Once this is done, you simply need to set up a mail alias. If you don't
+have this capability, your system administrator may need to set one up
+for you. How this is done varies from system to system, but in essence
+you need to set up some email address which, if mailed to, will pipe
+that email to "cddbd -m". The alias file entry might e.g. look like this:
+
+cddb-mailer:	"| /usr/local/bin/cddbd -m"
+
+Once an alias is arranged, you're all set. You should test it out by
+mailing yourself a database entry to see what happens. Send yourself
+both a good and bad one to verify that the correct thing happens.
+
+You may also accomplish the same thing through use of a .forward file, if
+needed. You might want to use a publically available mail filter such as
+procmail to discriminate between cddb entries and normal email so you
+don't end up piping all of your email through the server and generating
+(rather confusing looking) email rejections to everyone who sends you mail.
+You can do this by checking for a subject containing three arguments, the
+first of which is "cddb".
+
+Be warned: the email method of accepting submissions is not secure. Unlike
+direct transmission of new entries, anyone can send in new submissions
+and the server will not discriminate. As long as an entry is valid, it
+will be accepted regardless of the sender. This mode of operation was
+really intended for people to submit new entries to the master database
+itself, but serves as an alternate method of receiving new entries for
+those limited to UUCP or stuck behind firewalls. Just be aware of the
+security issues and don't blame us if your database is compromised in
+some way. While this is not likely, it could be a problem. Possible damage
+would be limited to the database directory itself, however.
+
+Please note:
+
+- If your mailer executes the daemon under a user ID other than the user
+the daemon is configured to run as (such as "bin"), you will have to make
+the daemon setuid (and possibly setgid as well). You will also have to set
+up the mailer user ID as a "trusted user" by re-running config.sh and
+recompiling the server.
+
+
+Section 3.5: Configuring the Daemon to Transmit Entries to Remote Sites
+-----------------------------------------------------------------------
+
+The daemon is capable of transmitting database entries to other cddbd
+servers via cddbp or via email. The current model of transmission only 
+allows one-way updates of new entries, so transmissions are only made from 
+database "master sites" to "slave sites". For example, the official freedb
+database master site is currently at freedb.org. Entries are submitted to 
+that site by CD player applications via email, where they are processed and 
+added to the main database. New entries are then spooled and transmitted to 
+the worldwide mirror servers several times a day. Once a user submits an 
+entry, it ends up on all sites within less than a day.
+
+In essence, a master hub is simply one that is both a "downstream" site and
+and "upstream" site, i.e., one that receives new entries and then retransmits
+them to other sites. Should any server in the flow be configured to transmit
+entries back to one of its upstream sites, a transmission loop is created
+that, while probably not harmful, is wasteful of bandwidth.
+
+To configure your site as a "master hub" that transmits entries to other
+sites, there are a few things that must be set up. First, you must be sure
+that your site is set up to receive new database entries via email or
+direct transmission as outlined in the previous two sections. Without some
+sort of input for new submissions, you'll have nothing to transmit!
+
+The most expedient way of setting up your daemon to transmit entries is to
+(re)install the daemon and answer "yes" when asked if you wish to configure
+the server as a master hub. Answer the questions regarding SMTP and your
+return address, as these will be needed if you will transmit entries via
+email. The install script will set up your access parameters appropriately,
+although you can edit the necessary access parameters by hand if you wish
+to avoid reinstalling (it's not that bad, just do it!)
+
+To do this by hand, make sure you have a valid "postdir" defined. This
+MUST NOT be the same as the "cddbdir"! In order for the server to
+process and transmit entries, they must be spooled in a separate directory
+hierarchy. The server will create the hierarchy as needed, as long as you
+specify a valid path to the top level. You must also specify "dup_policy"
+as either "compare" or "always". I suggest "compare" for this scenario, though
+"always" will work if you won't be accepting email submissions.
+The remaining parameters are: "transmits" set to 4; "smtphost" set to your
+SMTP host (probably localhost); "admin_email" set to your full email address;
+"logging" set to "errors hello access info post"; "dupdir" either blank or
+not appearing in the file. Alternately, you may set "dupdir" to some hierarchy
+(not the same as "postdir" or "cddbdir"!) if you wish to preserve duplicate
+entries. If you do this, duplicate submissions will not be merged with the
+database, but will be saved in the directory hierarchy you specify. You will
+have to remove duplicates by hand when you are through with them.
+
+Once you've configured the daemon to run as a hub, you need to set up
+a few simple timed scripts to initiate the update and transmit process.
+The command:
+
+cddbd -uft all
+
+will initiate the update, rebuild the fuzzy hash file to include any
+new database entries, and transmit new entries to all downstream sites.
+This process involves examining new entries in the postdir, merging them
+with the database and noting them in the history file, and conversing with
+remote sites. This can be somewhat lengthy, so if you wish you may exclude
+the "f" option. This will skip building the fuzzy matching hash file, and
+will speed up the process immensely. You don't need to update the hash file
+every time, so this might be a good thing to skip if your system is adversely
+affected by the rebuild.
+
+I suggest setting this up with cron to run once a day, or more if your system
+administrator doesn't mind the disk activity. This also causes a lot of
+activity on the remote sites, so you might check with the administrators
+on your downstream end to determine the best times and frequencies for
+transmits. Since remote sites or networks can be down, you should probably
+also run the following command at least several times a day:
+
+cddbd -t all
+
+This will catch up any remote sites that might have been unavailable at the
+time of the update. This command simply transmits files, which is inexpensive,
+so it can't hurt to do this often.
+
+Alternately, if you wish to transmit to an individual site, you can use:
+
+cddbd -t sitename
+
+where "sitename" is the name of the site to transmit to. This is useful if
+certain sites have restrictions on when you can transmit, and you want to 
+set up a special cron job for transmission to that site. There is no timed
+mechanism built into cddbd - you must manage it through the use of cron.
+In general, you should only require the initial update command once a day,
+and a few lone transmits scattered throughout the day.
+
+To set up transmission to a new site, you will need to create an entry
+in the "sites" file for that site. There are several forms of entries
+in the sites file, but there are only two for the purpose of transmitting
+entries:
+
+site.domain.com  cddbp [port|-] [flags|-] [pwdlbl]
+site.domain.com  smtp  user [flags|-] [pwdlbl]
+
+The first is for sites that you will be transmitting entries to via the
+CDDBP protocol across a network. The port argument is optional, and is
+only specified if the remote server is at a nonstandard port. The second
+is for sites that you will be transmitting entries to via the SMTP protocol.
+The "user" argument is not optional, and specifies the email address or alias
+that you will be sending entries to at that remote site.
+For details on these "sites"-file entries see Appendix B.
+
+When you add a site to the sites file for transmissions, it will be
+transmitted to the next time you execute the server with the "t" option.
+All new files after the next update (the "-u" option) will be sent to that
+site. If you wish to retroactively schedule the transmission of older
+entries, use the "-T" option. This takes a short while to run, and
+searches the database for files with time stamps within the specified
+range. It updates the history for that site appropriately, so the relevant
+files will be scheduled for transmission to that site. See the sections
+below on command line options and the sites file for more information.
+
+If you wish to check the status of transmissions, you can use the "stat"
+server command. It will display the current transmission status of all
+downstream sites. Also, you should periodically check the log file for
+transmit errors and other problems that might hamper file transmission.
+
+If you decide to stop feeding entries to a remote site, simply remove
+or comment out the entry for that site in the sites file. The history
+for that site will be automatically cleaned up the next time you transmit
+to any site.
+
+If you wish to look at the log statistics for a remote site, you can use
+the following command:
+
+cddbd -l all
+
+or 
+
+cddbd -l sitename
+
+This will cause the server to download the log stats from the relevant
+server(s) if you use CDDBP to talk to them. Sites that you talk to with
+SMTP cannot be contacted in this fashion. This is useful for getting
+information on usage and errors on the sites you feed. If you are having
+problems with a remote site, it is often useful to download the log from
+that site. You can do so by running this command:
+
+cddbd -C sitename "log get" 4
+
+You can then easily redirect the logfile (which is written to stdout) to a 
+file.
+
+If at any time you wish to verify the integrity of the database, you can run:
+
+cddbd -cdv 1 1
+
+This checks the database from top to bottom, verifying the validity of each
+entry. This takes about as long as building the fuzzy matching hash file, so
+sit back and relax. If this finds some errors with links or permissions, you
+may want to repair things. Use the following command to do so:
+
+cddbd -cdv 1 2
+
+This does the same thing as the former command, but repairs broken links and
+resets file permissions. If the check also reported some invalid entries and 
+you wish to have them automatically removed, use this command to do so:
+
+cddbd -cdv 1 3
+
+This does the same as the former command, but additionally removes invalid 
+files automatically from the database. It may not be able to repair everything,
+as some things require hand-maintenance. If there are still some errors after 
+cleaning the database you should probably just ignore them. Database 
+irregularities are not a cause for alarm, as they won't adversely affect the 
+normal operation of the server.
+
+Checking the database once in a while is a good idea, just to be sure that
+all is well.
+
+Please note:
+
+- DO NOT interrupt the daemon or its children while it is updating the
+database or transmitting. This may cause you to lose entries. Great
+precautions have been taken to ensure database integrity where possible, but
+it is still possible to cause problems if you kill the daemon when it's
+modifying the database.
+
+- Sites that you feed entries to must have the proper permissions set to
+allow your site to post new entries, if you use CDDBP. Without the proper
+permissions, transmission will fail.
+
+
+Section 4. How Clients Should Use the Server
+--------------------------------------------
+
+If you are interested in creating an application that uses the server, this
+section provides a few hints and tricks to help you out. More detailed
+information than that provided here can be found in the CDDBPROTO and DBFORMAT
+files included in this package. There is also an excellent document describing
+the nuts and bolts of using the entire cddb/cddbd package called "freedb.howto"
+that can be obtained from www.freedb.org.
+
+In general, clients will wish to acquire a database entry for a particular
+CD that a user has inserted into his CD ROM drive. By specifying the proper
+parameters to the "cddb query" command the server will attempt to locate the
+proper database entry for the user. The user client may download an entry
+located in this fashion using the "cddb read" command.
+
+There is little else most clients will ever need to do, other than signing
+in using the "cddb hello" command. There are some pitfalls and intended uses
+of the server that clients should be aware of, however:
+
+Some clients will perform a second query if they are presented with a fuzzy
+match for a particular CD. This is unnecessary, as the client can simply
+perform a read on any fuzzy match located by the server.
+
+When signing in using the "cddb hello" command, the client should specify
+the actual user name and system name of the person running the client. Some
+clients always specify the same hard-coded information regardless of the
+actual user and system name. This is discouraged because user information
+is used when gathering statistics on server usage, and incorrect hello
+information can affect these statistics. Some operating systems, such as
+Windows 3.1, may not have a notion of a user name. Clients that operate
+under such conditions should allow some way for a user to specify his or her
+user name to the application.
+
+Clients should not have a hard-coded list of remote server sites. These
+sites are subject to change, so hard-coded lists of sites can become stale.
+The "sites" command was created for clients to acquire a definitive list
+of valid server sites worldwide. It is suggested that client applications
+acquire the list when the program is first run, and offer an option to do so
+thereafter. (It's not necessary or desirable to do this every time the program
+is run.) 
+Because sites do come and go without notice sometimes, a permanent server
+site, freedb.freedb.org, has been created for clients to download the site list
+from. It is intended that clients use freedb.freedb.org to get the site list,
+and failing that, to get the list from one of the other last known public
+servers as a backup. All of the official freedb server sites will
+contain a valid list of servers, though freedb.freedb.org is the only site
+which is guaranteed to always exist.
+
+
+Section 5 Windows format support
+--------------------------------
+
+The server can also support the Windows database format. The main motivation
+for this "mode" was to have a read-only standalone server running under Cygwin
+on a Windows machine (where the original UNIX format cannot be reasonably
+handled by the NTFS filesystem and can't be handled by the FAT32 at all)
+however other platforms can benefit from this as well.
+
+Note that the write operations are not tested much (yet) and the write
+performance is probably "suboptimal".
+
+
+Section 5.1 Windows format mode prerequisites
+---------------------------------------------
+
+Make sure you have downloaded the Windows format version of the database.
+Unpack it to the place you want to have it (e.g. /usr/local/cddb) and that's
+it.
+
+
+Section 5.2 Configuring Windows mode, compiling
+-----------------------------------------------
+
+When the config.sh script asks you regarding the Windows format support do not
+forget to answer "y" (the default is "n" - UNIX format).
+
+The second question then will be regarding your Windows format flavour. 
+If you have downloaded an official Windows format database archive, the files
+in general will be in the form xxtoyy where xx is different from yy. This is
+referred to as range in the config dialog and you have to answer "y"
+(the default). 
+If you have generated the database some other way and you are sure that xx 
+is always the same as yy, you can also answer "y", however the handling of
+this case can be done more efficiently if you answer "n" (The server does not
+have to check in which "range file" a given discid lies and can go directly to
+the specific file. The speed-up, especially when used by only few users, is
+not that big, though).
+
+Finally you can let the server skip the peer address resolution by answering 
+"y" in the third question. This is handy when the cddbd server is used in
+Cygwin on a machine without DNS access as it takes about 5s to timeout the 
+resolution request. If you keep the resolution (the default), it will behave
+the same (apart from the annoying delay in this scenario).
+
+The rest is "standard" - i.e. compile it with "make" and then install with
+install.sh
+
+And finally - for any future updates, use the UNIX update files and the
+"freedb Windows Database Updater".
+
+
+Section 5.3 Sanity checks
+-------------------------
+
+Once you have installed the server you can do two simple checks whether it
+works (this is completely up to you and probably makes sense only if you are
+experimenting with your installation).
+
+First prepare a script CheckDirect.sh containg:
+
+#!/bin/sh
+export GATEWAY_INTERFACE="CGI/1.1"
+export REQUEST_METHOD="GET"
+export CONTENT_LENGTH=""
+export QUERY_STRING="cmd=cddb+read+misc+8f0b9a0a&hello=user+localhost+none+1.0&proto=5"
+time cddbd.exe
+
+When you run it, it should print out one record from the database. You can also
+check whether the response time is sufficient for you before configuring
+the web server.
+
+For the second test you need to have built the fuzzy index (i.e. run cddbd -fd).
+Prepare a script CheckFuzzy.sh containing:
+
+#!/bin/sh
+export GATEWAY_INTERFACE="CGI/1.1"
+export REQUEST_METHOD="GET"
+export CONTENT_LENGTH=""
+export QUERY_STRING="cmd=cddb+query+680b8d0a+10+150+20475+44550+64050+89325+112950+132375+156600+178875+197850+2957&hello=user+localhost+none+1.0&proto=5"
+time cddbd.exe
+
+When executed, it uses fuzzy search and returns a list of possible candidates.
+Again you can also check whether the response time is sufficient for you
+before configuring the web server (try to run it several times to check how
+caching of the filesystem affects the times).
+
+
+Section 6. Getting Help
+-----------------------
+
+If you have questions on any other topic related to cddbd, please visit the
+freedb forums at http://www.freedb.org/cgi-bin/ib31/ikonboard.cgi
+
+The forum is usually the best and fastest way to get help, but you may also
+send an e-mail to:
+
+info@freedb.org
+
+We are willing to answer any question and provide assistance. You can
+also contact the freedb team at this address if you wish to become an official
+mirror site and get a database feed of your own.
+
+
+Appendix A: The Access File
+---------------------------
+
+The install script sets up cddbd with simple defaults that should work
+in most cases, assuming you provided the config and install scripts
+with correct pathnames. However, cddbd is highly configurable and its
+behavior may be modified by making changes to the access file. Depending
+on your desires, you may wish to alter the defaults to tailor the server
+to your meet your requirements.
+
+The behavior of the daemon is determined by the contents of the access file.
+By setting parameters in this file in the appropriate manner, all aspects of
+the daemon's behavior can be controlled. There are numerous parameters,
+and you should not have to worry about most of them. The parameters and what
+they signify are outlined here.
+
+All parameters should each appear on a separate line. Numerical options
+should be a positive decimal value. Pathname arguments should always specify
+absolute paths.
+
+motdfile:
+	Absolute pathname to a file containing the "message of the day".
+	This should probably reside in the same directory as the access file,
+	but doesn't necessarily have to. The contents of this file will
+	be displayed to the client when the "motd" server command is executed.
+
+sitefile:
+	Absolute pathname to a file containing information on remote sites.
+	This information is used when transmitting database entries,
+	and as data for the "sites" command.
+
+workdir:
+	Absolute pathname to the root server directory. This path is
+	where all the server files and directories reside.
+	
+cddbdir:
+	Absolute pathname to the directory where the CD database is located.
+	This is the only required field in the access file.
+
+postdir:
+	Absolute pathname to the directory for posting new entries.
+	This should be the same as cddbdir if you running a slave site.
+	Since by enabling posting you are allowing others to write
+	to your system, you might want to make this a directory somewhere
+	in your spool directory hierarchy in order to avoid having a
+	malicious user clog up your filesystem. Be sure to set up your
+	posting permissions correctly in any case.
+
+dupdir:
+	Absolute pathname to the directory for putting duplicate entries.
+	This directory is important if you are maintaining a master copy
+	of the database. Files in the post directory that are duplicates
+	of entries in the database will end up here when an update is run.
+	Duplicates must be dealt with by hand; whether that means deletion
+	or hand-inspection is up to the database administrator. If no
+	path is specified, duplicates will be deleted automatically.
+
+lockdir:
+	Absolute pathname to the directory for locking.
+	This directory should be writable by the uid that the server will
+	be running as. This directory should probably reside in the same
+	directory as the acces file, but doesn't necessarily have to.
+
+input_time:
+	Input timeout value in seconds. User is disconnected if idle
+	longer than the timeout. A zero value disables this feature.
+
+	Should be less than or equal to "connect_time".
+
+access_time:
+	Access timeout value in seconds. User is disconnected if
+	a database access attempt is not performed within the allotted
+	time. A zero value disables this feature.
+
+	This keeps users from connecting via telnet and staying connected
+	without actually using the server.
+
+	Should be greater than or equal to "input_time" and less than or
+	equal to "connect_time".
+
+connect_time:
+	Connect timeout value in seconds. User is disconnected after
+	being connected for the allotted time. A zero value disables
+	this feature.
+
+	This keeps the user from hogging the server for too long, regardless
+	of how he uses it.
+
+	Should be greater than or equal to "access_time".
+
+xmit_time:
+	Input timeout value in seconds. Connections to remote sites
+	are terminated if transmissions stall for longer than the
+	timeout. A zero value disables this feature.
+
+elapse_time:
+	The time in milliseconds used when checking if too much time has
+	been spent processing. If set to zero, there is no processing time
+	limit.
+
+delay_time:
+	The time in milliseconds used when delaying if too much time has
+	been spent processing. If set to zero, no delay will be performed.
+
+email_time:
+	The time in seconds to delay between smtp transmissions. No delay
+	can literally cause a flood of email to occur.
+
+fuzzy_factor:
+	The frame count factor used in comparing track offsets for
+	fuzzy matching. This is the number of frames that any one track
+	can be off by. Frames are 1/75 of a second.
+
+	This should probably be left alone. Tuning this upward makes for
+	a more liberal matching algorithm that is prone to find incorrect
+	matches, and tuning it downward makes for a stricter matching
+	algorithm that is more likely to miss legitimate matches.
+
+fuzzy_div:
+	When divided into "fuzzy factor", this is the average number of
+	frames track offsets can differ by for fuzzy matching.
+
+	This should probably be left alone. Tuning this downward makes for
+	a more liberal matching algorithm that is prone to find incorrect
+	matches, and tuning it upward makes for a stricter matching
+	algorithm that is more likely to miss legitimate matches.
+
+logging:
+	Logging verbosity flags. If logfile is not specified, logging
+	is always disabled, regardless of this setting. One or more of the
+	following should be specified separated by white space:
+
+	none:	Logging disabled. This nullifies all other log flags.
+	hello:	Logs "hello" data. Useful for keeping track of database "hits".
+	access:	Logs database accesses.
+	post:	Logs database postings.
+	info:	Logs general info.
+	input:	Logs all user input.
+	errors:	Logs program errors.
+	all:	Enables all logging flags.
+
+dup_policy:
+	The value of this variable dictates wheter duplicate entries are to
+	be copied over existing database entries. This variable may be
+	specified with one of the following options:
+
+	never:   Never copy over an existing database entry with a duplicate.
+	compare: Compare duplicates with existing entries before copying over.
+	always:  Always copy duplicate entries over existing entries.
+
+	Duplicates that are rejected for copying are put into "dupdir" if
+	it exists, otherwise they are deleted. It is suggested that
+	slave sites set this to "always" and master sites set this to
+	"compare". If not specified, the default setting is "compare".
+
+transmits:
+	The value of this variable specifies how many sites can be
+	transmitted to simultaneously. Since transmitting is inexpensive,
+	it is safe to set this number high.
+
+smtphost:
+	The hostname of the system to contact when sending mail via SMTP.
+	The most likely host is "localhost", but someone may want to
+	set this to another address.
+
+admin_email:
+	The full email address of the daemon administrator. This is used
+	as the return address when the server sends email.
+
+bounce_email:
+	The full email address to which copies of bounced email submissions
+	should go (in addition to the original sender). This should
+	generally be set to those who are interested in debugging problems
+	with submissions from client applications. If this parameter is
+	empty or missing, only the originator is mailed when a submission
+	is rejected.
+
+test_email:
+	The full email address to which copies of test email submissions
+	should go (in addition to the original sender). This should
+	generally be set to those who are interested in debugging problems
+	with test submissions from client applications. If this parameter is
+	empty or missing, only the originator is mailed when a test submission
+	is received. Responses to test submissions are sent regardless of
+	whether the submission is accepted or rejected.
+
+strip_ext:
+	A boolean value which may be either ("1", "true", "yes") to indicate
+	true or ("0", "false", "no") to indicate false. If true, extended
+	track data is purged when checking the database and when entries
+	are read by users.
+
+log_hiwat:
+	The maximum size in bytes the log file is allowed to be. If the log
+	file should increase in size so that it exceeds the high water mark,
+	it is truncated.
+
+log_lowat:
+	The size the log file is truncated to when it grows to log_hiwat
+	bytes in size.
+
+put_size:
+	The max allowable amount of data transferable through a put
+
+post_lines:
+	The max number of allowable lines a posted database entry
+	may be. A line is currently limited to 256 bytes.
+
+users:
+	The max number of users that can access the database at once.
+	If set to zero, no limit is placed on the number of
+	simultaneous users. Accesses to the database tend to be
+	very quick and efficient, so very little additional load is
+	placed on even a slow system by the server. You might want to
+	consider disabling this feature or setting it to a very high value,
+	unless your system is an extremely busy one.
+	
+ck_berzerk:
+    If set to yes, the server closes the connection in cddbp mode with
+    an error message, if repeated identical cddb query or cddb read
+    commands are detected. This is to try to stop berzerk clients. If set
+    to no, no checking for berzerk clients is done.
+
+file_charset:
+	The charset used in files. The possible values are:
+
+	only_iso:
+	    All files are in ISO-8859-1.
+	prefer_iso:
+	    Files may be in ISO-8859-1 or UTF-8. New files are created
+	    in ISO-8859-1 if the data can be represented in ISO-8859-1
+	    and the result is not confusible with UTF-8, and otherwise
+	    in UTF-8.
+	prefer_utf:
+	    Files may be in ISO-8859-1 or UTF-8, but new files are
+	    always created in UTF-8.
+	only_utf:
+	    All files are in UTF-8.
+
+	The default is "prefer_iso", which gives full Unicode support
+	to clients while minimising the use of UTF-8 on disc.
+
+utf_as_iso:
+	What to do with client data that is presented as ISO-8859-1
+	(because the protocol level is < 6 or the MIME charset
+	indication says "iso-8859-1") but which looks like UTF-8.
+	The possible values are:
+
+	accept:
+	    Accept the data as ISO-8859-1.
+	reject:
+	    Refuse the data, giving an error.
+	convert:
+	    If the data is valid as UTF-8, accept it as UTF-8.
+	    Otherwise refuse the data, giving an error.
+
+	The default is "reject", which protects the database from
+	being corrupted by confused clients.
+
+user:
+	The user name of the user that owns the daemon files. This may
+	also be a numeric user ID. If the word "default" is specified,
+	the user name of the invoking user will be used.
+
+group:
+	The group name of the user that owns the daemon files. This may
+	be the name of any group that the user belongs to. This may
+	also be a numeric group ID. If the word "default" is specified,
+	the group name of the invoking user will be used.
+
+file_mode:
+	The file permissions, in octal, that server files should be set to.
+
+dir_mode:
+	The file permissions, in octal, that server directories should be
+	set to.
+
+db_user:
+	The user name of the user that owns the database files. This may
+	also be a numeric user ID. If the word "default" is specified,
+	the user name of the invoking user will be used.
+
+db_group:
+	The group name of the user that owns the database files. This may
+	be the name of any group that the user belongs to. This may
+	also be a numeric group ID. If the word "default" is specified,
+	the group name of the invoking user will be used.
+
+db_file_mode:
+	The file permissions, in octal, that database files should be set to.
+
+db_dir_mode:
+	The file permissions, in octal, that database directories should be
+	set to.
+
+host_perms:
+	Whether to allow/disallow connections, posting entries to "postdir"
+	via "cddb write", whether to allow remotely initiated database
+	updates via "update", whether to allow the user to get the log
+	and other files, and whether to allow the user to update the motd and
+	sites files. There may be multiple of these lines in the file
+	in order to specify different permissions for various hosts.
+
+	The format is:
+
+	permissions: interface remote_host connect post update get put
+
+	The arguments are:
+
+	interface: Valid values are: c, h, e and s, which correspond to CDDBP,
+	    HTTP, email and submissions. You may put any or all of these
+	    values in a single argument, with no separating spaces. If a
+	    single '-' character appears before these values, then all
+	    interfaces not listed after the '-' are specified; a '-' by
+	    itself specifies all interfaces.
+	remote_host: An Internet hostname, network name, domain name,
+	    IP address or the word "default" for all hosts. Any
+	    host matching this field is given privileges as specified
+	    by the following fields. Only one default line may
+	    appear in the file. If a host matches more than one
+	    specified permission, the most specific match is used.
+	connect:
+	    Valid values are either "connect" or "noconnect" to
+	    either allow or disallow connections. The value "hang" is also
+	    allowed for connection-based interfaces; this causes the connection
+	    to be held open without allowing the client perform any operations.
+	    This is useful for stopping clients which reconnect rapidly upon
+	    rejection. For interfaces which are not connection-based, "hang"
+	    implies "noconnect".
+	post:
+	    Valid values are either "post" or "nopost" to either
+	    allow or disallow posting.
+	update:
+	    Valid values are either "update" or "noupdate" to either
+	    allow or disallow remotely initiated updates.
+	get:
+	    Valid values are either "get" or "noget" to either
+	    allow or disallow remote acquisition of server files.
+	put:
+	    Valid values are either "put" or "noput" to either
+	    allow or disallow remote replacement of server files (limited).
+
+client_perms:
+	Whether to allow/disallow DB entries/handshakes from a particular
+	client/client revision. By default, they are allowed from
+	any client, unless prohibited by a perms rule. There may be
+	multiple of these lines in the file in order to specify different
+	permissions for various clients. If a client/revision matches
+	more than one rule, the last match is used.
+
+	The format is:
+
+	client_perms: interface permission client low_revision high_revision
+
+	The arguments are:
+
+	interface: Valid values are: c, h, e and s, which correspond to CDDBP,
+	    HTTP, email and submissions. You may put any or all of these
+	    values in a single argument, with no separating spaces. If a
+	    single '-' character appears before these values, then all
+	    interfaces not listed after the '-' are specified; a '-' by
+	    itself specifies all interfaces.
+	permission: Valid values are either "allow" or "disallow" to
+	    either allow or disallow submissions/connections from the
+	    client/revision. The value "hang" is also allowed for connection-
+	    based interfaces; this causes the connection to be held open
+	    without allowing the client perform any operations. This is
+	    useful for stopping clients which reconnect rapidly upon rejection.
+	    For interfaces which are not connection-based, "hang" implies
+	    "noconnect".
+	client: A string with no white space which must exactly match the
+	    client name being compared. The string "-" is a wildcard which
+	    matches all clients; the client revision is ignored in this case.
+	low_revision:
+	high_revision:
+	    Both are strings with no white space representing the range of
+	    client revisions to be matched. The server parses the revision
+	    for rev level numbers and alpha, beta and patch level strings
+	    when comparing ranges. The string "-" is a wildcard which matches
+	    all revisions.
+
+	Example:
+
+	For the following perms rule, submissions from xmcd versions 1.4
+	through 1.7 would be rejected:
+
+	client_perms: s disallow xmcd 1.4 1.7
+
+	For the following perms rule, CDDBP and HTTP connections from xmcd
+	version 2.0PL1 and on would be accepted:
+
+	client_perms: ch allow xmcd 2.0PL1 -
+
+	For the following perms rule, all submissions from DiscPlay would
+	would be rejected:
+
+	client_perms: -che disallow DiscPlay - -
+
+	For the following perms rule, all connections and submissions from
+	EasyCD versions up to and including 2.3.1 would be accepted:
+
+	client_perms: - allow EasyCD - 2.3.1
+
+
+
+Appendix B: The Sites File
+--------------------------
+
+This file contains the hostname and/or email addresses of
+remote database servers that are fed database entries by your
+site, or that are queried for log information.
+
+Remote site entries may take three forms:
+
+    site.domain.com  cddbp [port|-] [flags|-] [pwdlbl]
+    site.domain.com  smtp  user [flags|-] [pwdlbl]
+    site.domain.com  info  proto <port|-> addr lat long description
+
+It is allowed to have up to one of each form for the same site, except
+that there may be more than one "info" entry for a given site if it
+is accessible by multiple protocols.
+
+In addition, there is a fourth form which is used for describing
+groups of site entries:
+
+    group_name  group  site.domain.com ... anothersite.domainN.com
+
+The first form specifies an Internet host address that can be reached
+with CDDBP for the purpose of uploading new database entries, or for
+issuing CDDBP commands.
+
+The "port" argument is optional, and if it is not specified (or if "-"
+is specified) then the default port will be looked up in /etc/services.
+Failing that, a built-in default will be used. The port number should
+not be necessary unless the cddb server being accessed is at a
+nonstandard port.
+
+The "flags" argument is optional, and if it is not specified (or
+if "-" is specified), then no flags will be set. Otherwise, the
+desired flags for the site should appear with no separating white
+space. Valid flags are:
+
+    t: Do not transmit to this site.
+    m: Site is running an old server with bad Mime handling.
+    f: Site requires the old xmcd file format (no DGENRE/DYEAR).
+    i: Site does not support UTF-8, so always send in LATIN1 (ISO-8859-1)
+
+Please note, that all flags except for the t flag only apply to
+smtp transmissions. If cddbp is used, these flags will be ignored.
+
+The "pwdlbl" argument is optional, and if it is not specified then
+no password is used when conversing with that host. If specified,
+the password corresponding to the password label is looked up in the
+password file and used when interacting with that host. Example:
+
+    freedb.freedb.org cddbp 8880 t freedb_passwd
+
+The second form specifies an email address that new database entries
+will be emailed to via SMTP. The "user" argument will be combined
+with the site name to form the email address. The "flags" and
+"pwdkey" arguments are identical to those defined above. Example:
+
+    freedb.org smtp user - freedb_passwd
+
+This causes transmit mail to be sent to user@freedb.org.
+
+The third form specifies location information for a known Internet
+server site. This information is displayed as output with the "sites"
+server command. The "proto" argument specifies the protocol to be used
+to access the server (so far only CDDBP and HTTP). The "port" argument
+specifies the port that the server resides at on the remote site;
+a "-" may be specified if the remote server resides at the default
+port for that protocol. The "addr" argument specifies any additional
+addressing information required to access the server, or a "-" if none.
+For HTTP, this is the path to the server CGI script. The "latitude" and
+"longitude" arguments specify the global coordinates of the server
+site. These should be specified in the following format:
+
+    CDDD.MM
+
+where "C" is the compass direction (N, E, W, S), "DDD" is the
+degrees, and "MM" is the minutes. The "description" is an
+arbitrary length string describing the site. Example:
+
+    us.freedb.org info cddbp 8880 - N037.21 W121.55 San Jose, CA USA
+
+The fourth form is not truly a site entry, but rather an alias for
+a group of entries. When a group name is used as a command line
+argument to the server in place of a site name, the server performs
+the requested operation to all sites in the group. Example:
+
+    north_america group joes.site.com bobs.computer.com bills.place.com
+
+If the server is directed to transmit to "north_america", it spawns
+off processes to transmit to joes.site.com, bobs.computer.com and
+bills.place.com. All three of those sites must have valid cddbp or
+smtp entries in the sites file. If more than one group name definition
+appears with the same group name, both lists of sites are added
+together.
+
+
+Appendix C: Other Files
+-----------------------
+
+There are several other important files used by the server.
+
+The log file:
+
+The log file is important, and you should make it as large as you reasonably
+can (with the "log_hiwat" and "log_lowat" access parameters).  The daemon
+notes almost every aspect of its activity in the log file, and it
+can be crucial for figuring out problems with operation. Also, the log
+file is used to keep daemon usage and error statistics. You can view
+these with the "log" server command. You can download the log file from
+remote sites with the "log day" command, if permissions on that site allow it.
+
+The CDDBD password file:
+
+This file contains passwords used when conversing with remote servers.
+The format is as follows:
+
+    pwdlbl: password
+
+The "pwdlbl" argument is a string corresponding to a password label
+specified in either the sites and/or access files. The "password"
+argument is the 32-character hex password string used when
+conversing with the remote server associated with the password label.
+
+NOTE: This file must not be publically readable. The server will
+refuse to access this file if permissions allow others to read it.
+
+
+The history file:
+
+This file, though in ascii format, is not intended to be modified by hand.
+The server uses this file to maintain a log of outstanding files that have
+yet to be transmitted to remote sites.
+
+
+The fuzzy matching hash file:
+
+This file is created by the server with the "-f" option. It contains a
+sorted list of database entries and some important statistics necessary
+for quickly finding fuzzy matches for a user query. The server will operate
+if this file doesn't exist, but it will complain profusely.
+
+
+The lock directory:
+
+This directory is where the daemon puts file locks. It should be left
+untouched by the user.
+
+
+Appendix D: Server Options
+--------------------------
+
+The CD database server has several run-time options that you can use to
+override the default behavior for debugging purposes. There are several
+usage modes:
+
+cddbd <-m|-M> [-dqv] [-a access_file]
+cddbd -s <port|"default"> [-dqv] [-a access_file]
+cddbd [-uef] [<-l|t <rhost|"all">> |
+       <-T <rhost|"all"> <hh[mm[ss[MM[DD[YY]]]]]>>]
+       [-c <check_lev|"default"> <fix_lev|"default">]
+       [-p <rhost|"all"> <file>] [-dqv] [-a access_file]
+cddbd -C <rhost|"all"> <cddbp_command> <proto_lev>
+cddbd -k
+cddbd -P
+
+
+Except as noted below, options for one mode cannot be mixed with that of
+another mode.
+
+
+The following options are valid in conjunction with any other combination
+of options except for "-C", "-k" and "-P":
+
+The "-d" option puts the server in debug mode. All log output is routed to
+stderr rather than the log file when this option is invoked. This is useful
+for debugging when the server can't find the log file for some reason.
+
+The "-v" option puts cddbd in verbose mode. This causes cddbd to generate
+more verbose log output.
+
+The "-q" option puts cddbd in quiet mode. All log output is suppressed
+when this option is invoked. This option nullifies the "d" and "v"
+options.
+
+The "-a" option forces cddbd to use the specified pathname as the location
+of the access file regardless of the path that was compiled into the server.
+This is useful when cddbd can't find the access file or when you want to
+test out an alternate access file without disturbing the installed version.
+
+
+The following options are used with the daemon mail filter mode:
+
+The "-m" option puts cddbd in mail filter mode. In this mode, it expects
+one full email database submission, complete with mail header, to be fed in
+through standard input. The entry will be processed and placed in the "post"
+directory for later inclusion in the database, if it is valid.
+
+The "-M" works much the same as the "-m" option, but does not actually
+post submitted entries. Instead, confirmation is echoed to the sender if
+the submission is acceptable. This mode is useful for testing client
+applications that wish to develop and test new entry submission capability.
+
+
+The following options are used with the server standalone mode:
+
+The "-s" option puts cddbd in standalone server mode. It forks and becomes
+a background process, listening at the specified port number for connections.
+If the word "default" is specified instead of a port number, then the
+daemon uses the most appropriate default. It will first check /etc/services
+for a port number, and failing that, will use the built-in default of port
+8880.
+
+
+The following options are used with the various daemon database management
+modes:
+
+The "-c" option causes cddbd to check the integrity of the database and
+possibly correct what problems it can. It requires two numerical arguments, 
+which correspond respectively to the level of strictness to be employed 
+when verifying database entries and when fixing the database.  Currently there 
+is only one check level implemented, so this value must always be 1, while 
+the fix level is a value in the range from 1 to 3., Fix level 1 causes no
+repairs to be made to the database, level 2 causes permissions and links to
+be fixed, and level 3 additionally causes the removal of files judged to be
+invalid. Fix level 3 should not be employed unless you are sure the database
+contains no invalid entries that can be salvaged. Level 1 or 2 should be
+used first to determine if some files can be hand-repaired. 
+
+The "-e" option causes cddbd to check for entries that should possibly be 
+linked. It will print an exhaustive list of entries that have fuzzy matches 
+with other entries in the database. This option does not cause them to actually
+be linked - this must still be done by hand.
+
+The "-u" option causes cddbd to initiate an update of the database with
+new entries from the "post" directory. It updates the transmit history
+file for remote sites.
+
+The "-f" option causes cddbd to build the fuzzy matching hash index, then
+exit. This option is best used in conjunction with "-d", otherwise
+any errors encountered during the creation of the hash file will go to
+the error log.
+
+The "-p" option allows to remotely put the sites or motd-file to the named 
+remote site, or all remote sites if the word "all" is specified. For this to 
+work, the put-permission must be granted on the receiving server.
+
+The "-l" option causes cddbd to obtain log status information for the named
+remote site, or all remote sites if the word "all" is specified.
+
+The "-t" option causes cddbd to transmit all outstanding new database
+entries to the specified remote site, or all remote sites if the word
+"all" is specified.
+
+The "-T" option causes cddbd to reset the transmit history for the named
+remote site, or all remote sites if the word "all" is specified. The history
+is reset to the specified time, or to the current time if the word "now"
+is specified instead. Any portion of the time that is not explicitly specified
+will be substituted with the current value of that portion of the time.
+
+If multiple database management options are invoked at once, the server
+runs them in this order: cuf<l|t|T>
+
+
+The following option is used to access remote servers:
+
+The "-C" option causes cddbd to connect to the named remote site, or all 
+remote sites if the word "all" is specified, and execute the specified
+cddb command on the remote server. The response from the remote server is 
+written to stdout.
+
+
+The following options is used for key handling:
+
+The "-k" option causes cddbd to generate a random 32-character hex password
+string, which can be used as a key to restrict administrative access to a 
+cddb server.
+
+The "-P" option causes cddbd to generate a password to be used in validation
+with a cddb server. The cddbd queries for the key and  the salt on the 
+commandline and returns the password.
